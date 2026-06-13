@@ -163,10 +163,15 @@ XRAY_PATH=/usr/local/bin/xray
 XRAY_CONFIG_PATH=/usr/local/etc/xray/config.json
 EOF
 
+# 找到 npm 的完整路径（兼容 sudo 环境 PATH 丢失）
+NPM_BIN=$(which npm 2>/dev/null || echo "/usr/bin/npm")
+NODE_BIN=$(which node 2>/dev/null || echo "/usr/bin/node")
+
 # 安装 + 构建
 echo "  安装依赖 + 构建前端..."
-npm install 2>&1 | tail -1
-npm run build -w client 2>&1 | tail -3
+cd "$INSTALL_DIR"
+$NPM_BIN install 2>&1 | tail -3
+$NPM_BIN run build -w client 2>&1 | tail -3
 
 # ---- 5. 创建 systemd 服务 ----
 echo -e "${YELLOW}[5/5] 配置 systemd 服务...${NC}"
