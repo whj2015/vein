@@ -165,7 +165,7 @@ EOF
 
 # 安装 + 构建
 echo "  安装依赖 + 构建前端..."
-npm install --production 2>&1 | tail -1
+npm install 2>&1 | tail -1
 npm run build -w client 2>&1 | tail -3
 
 # ---- 5. 创建 systemd 服务 ----
