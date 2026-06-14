@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { ArrowLeft, Plus, Trash2, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Copy, Check, Link2 } from 'lucide-react';
 
 export default function Clients() {
   const { id } = useParams();
@@ -13,10 +13,13 @@ export default function Clients() {
   const [uuid, setUuid] = useState('');
   const [totalGb, setTotalGb] = useState('0');
   const [expiry, setExpiry] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
+  const [serverIp, setServerIp] = useState('');
 
   const load = () => {
     api.get('/inbounds/' + id).then((r) => setInbound(r.data));
     api.get('/inbounds/' + id + '/clients').then((r) => setClients(r.data));
+    api.get('/system/stats').then(r => setServerIp(r.data.hostname || '')).catch(() => {});
   };
   useEffect(() => { load(); }, [id]);
 
@@ -42,8 +45,26 @@ export default function Clients() {
     load();
   };
 
-  const copyText = (text) => {
+  const copyText = (text, id) => {
     navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getShareLink = (client) => {
+    if (!inbound) return '';
+    const host = window.location.hostname;
+    const addr = host !== 'localhost' && host !== '127.0.0.1' ? host : (serverIp || 'YOUR_IP');
+    switch (inbound.protocol) {
+      case 'vmess':
+        return 'vmess://' + btoa(encodeURIComponent(JSON.stringify({ v: '2', ps: 'Vein', add: addr, port: String(inbound.port), id: client.uuid, aid: '0', net: 'tcp', type: 'none' })));
+      case 'vless':
+        return 'vless://' + client.uuid + '@' + addr + ':' + inbound.port + '#Vein';
+      case 'trojan':
+        return 'trojan://' + client.uuid + '@' + addr + ':' + inbound.port + '#Vein';
+      default:
+        return '';
+    }
   };
 
   return (
@@ -101,12 +122,8 @@ export default function Clients() {
                 <td className="py-2.5">{c.email}</td>
                 <td className="py-2.5">
                   <span className="font-mono text-xs text-gray-400">{c.uuid?.slice(0, 16)}...</span>
-                  <button
-                    onClick={() => copyText(c.uuid)}
-                    className="ml-1.5 text-gray-600 hover:text-gray-400 inline"
-                    title="复制"
-                  >
-                    <Copy className="w-3 h-3 inline" />
+                  <button onClick={() => copyText(c.uuid, 'uuid-' + c.id)} className="ml-1.5 text-gray-600 hover:text-gray-400 inline" title="复制 UUID">
+                    {copiedId === 'uuid-' + c.id ? <Check className="w-3 h-3 text-emerald-400 inline" /> : <Copy className="w-3 h-3 inline" />}
                   </button>
                 </td>
                 <td className="py-2.5 text-gray-400">
@@ -121,12 +138,14 @@ export default function Clients() {
                   </span>
                 </td>
                 <td className="py-2.5">
-                  <button
-                    onClick={() => remove(c.id)}
-                    className="btn btn-ghost p-1.5 text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={() => copyText(getShareLink(c), 'link-' + c.id)} className="btn btn-ghost p-1.5 text-indigo-400 hover:text-indigo-300" title="复制连接链接">
+                      {copiedId === 'link-' + c.id ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                    </button>
+                    <button onClick={() => remove(c.id)} className="btn btn-ghost p-1.5 text-red-400 hover:text-red-300" title="删除">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
