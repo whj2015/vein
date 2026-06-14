@@ -270,7 +270,8 @@ function buildShareLink(protocol, uuid, port, streamSettings, serverIp) {
 
   const toB64 = (str) => {
     try {
-      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p)));
+      // vmess JSON 是纯 ASCII，直接用 btoa
+      return btoa(str);
     } catch { return ''; }
   };
 

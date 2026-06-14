@@ -57,7 +57,7 @@ export default function Clients() {
     const addr = host !== 'localhost' && host !== '127.0.0.1' ? host : (serverIp || 'YOUR_IP');
     switch (inbound.protocol) {
       case 'vmess':
-        return 'vmess://' + btoa(encodeURIComponent(JSON.stringify({ v: '2', ps: 'Vein', add: addr, port: String(inbound.port), id: client.uuid, aid: '0', net: 'tcp', type: 'none' })));
+        return 'vmess://' + btoa(JSON.stringify({ v: '2', ps: 'Vein', add: addr, port: String(inbound.port), id: client.uuid, aid: '0', net: 'tcp', type: 'none' }));
       case 'vless':
         return 'vless://' + client.uuid + '@' + addr + ':' + inbound.port + '#Vein';
       case 'trojan':
