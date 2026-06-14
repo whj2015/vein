@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, Plus, Trash2, Copy, Check, Link2 } from 'lucide-react';
+import { buildLink } from '../share-link';
 
 export default function Clients() {
   const { id } = useParams();
@@ -55,16 +56,7 @@ export default function Clients() {
     if (!inbound) return '';
     const host = window.location.hostname;
     const addr = host !== 'localhost' && host !== '127.0.0.1' ? host : (serverIp || 'YOUR_IP');
-    switch (inbound.protocol) {
-      case 'vmess':
-        return 'vmess://' + btoa(JSON.stringify({ v: '2', ps: 'Vein', add: addr, port: String(inbound.port), id: client.uuid, aid: '0', net: 'tcp', type: 'none' }));
-      case 'vless':
-        return 'vless://' + client.uuid + '@' + addr + ':' + inbound.port + '#Vein';
-      case 'trojan':
-        return 'trojan://' + client.uuid + '@' + addr + ':' + inbound.port + '#Vein';
-      default:
-        return '';
-    }
+    return buildLink(inbound.protocol, client.uuid, inbound.port, inbound.stream_settings, addr);
   };
 
   return (

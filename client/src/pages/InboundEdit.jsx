@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { ArrowLeft, Sparkles, Copy, Check, Zap, Settings2, Globe } from 'lucide-react';
+import { buildLink } from '../share-link';
 
 const PROTOCOLS = ['vmess', 'vless', 'trojan', 'shadowsocks'];
 
@@ -87,7 +88,7 @@ export default function InboundEdit() {
       // 2. 自动创建第一个客户端
       const { data: cl } = await api.post('/inbounds/' + ib.id + '/clients', { email: 'user-' + Date.now() });
       // 3. 生成分享链接
-      const link = buildShareLink(form.protocol, cl.uuid, form.port, form.stream_settings, serverIp);
+      const link = buildLink(form.protocol, cl.uuid, form.port, form.stream_settings, serverIp);
       setSuccess({ link, inboundId: ib.id, clientId: cl.id });
     } catch (err) {
       setError(err.response?.data?.error || '创建失败');
@@ -261,50 +262,4 @@ export default function InboundEdit() {
       )}
     </div>
   );
-}
-
-// 生成 vmess:// / vless:// / trojan:// 链接
-function buildShareLink(protocol, uuid, port, streamSettings, serverIp) {
-  const host = window.location.hostname;
-  const address = host !== 'localhost' && host !== '127.0.0.1' ? host : (serverIp || 'YOUR_SERVER_IP');
-
-  const toB64 = (str) => {
-    try {
-      // vmess JSON 是纯 ASCII，直接用 btoa
-      return btoa(str);
-    } catch { return ''; }
-  };
-
-  switch (protocol) {
-    case 'vmess': {
-      const cfg = JSON.stringify({
-        v: '2', ps: 'Vein', add: address, port: String(port), id: uuid, aid: '0', scy: 'auto',
-        net: parseStreamNet(streamSettings), type: 'none',
-        host: parseStreamHost(streamSettings), path: parseStreamPath(streamSettings),
-        tls: parseStreamTls(streamSettings),
-      });
-      return 'vmess://' + toB64(cfg);
-    }
-    case 'vless':
-      return 'vless://' + uuid + '@' + address + ':' + port + '?encryption=none&type=tcp#Vein';
-    case 'trojan':
-      return 'trojan://' + uuid + '@' + address + ':' + port + '#Vein';
-    case 'shadowsocks':
-      return 'ss://' + toB64('aes-256-gcm:' + uuid) + '@' + address + ':' + port + '#Vein';
-    default:
-      return protocol + '://' + uuid + '@' + address + ':' + port;
-  }
-}
-
-function parseStreamNet(ss) {
-  try { const o = typeof ss === 'string' ? JSON.parse(ss) : ss; return o?.network || 'tcp'; } catch { return 'tcp'; }
-}
-function parseStreamHost(ss) {
-  try { const o = typeof ss === 'string' ? JSON.parse(ss) : ss; return o?.wsSettings?.headers?.Host || o?.tlsSettings?.serverName || ''; } catch { return ''; }
-}
-function parseStreamPath(ss) {
-  try { const o = typeof ss === 'string' ? JSON.parse(ss) : ss; return o?.wsSettings?.path || o?.grpcSettings?.serviceName || ''; } catch { return ''; }
-}
-function parseStreamTls(ss) {
-  try { const o = typeof ss === 'string' ? JSON.parse(ss) : ss; return o?.security === 'tls' ? 'tls' : (o?.security === 'reality' ? 'reality' : ''); } catch { return ''; }
 }
